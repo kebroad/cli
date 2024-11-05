@@ -12,7 +12,7 @@ func newReposBlockIngestCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "block-ingest [flags] [repository] <seconds>",
-		Short: "Block ingest for repositories",
+		Short: "Block ingest for a repository",
 		Long: `Block ingest for one or all repositories for a specified number of seconds.
 
 Examples:
@@ -63,20 +63,15 @@ Examples:
 					}(repo.Name)
 				}
 
-				var hasErrors bool
 				for i := 0; i < len(repos); i++ {
 					res := <-results
 					if res.err != nil {
-						hasErrors = true
 						fmt.Fprintf(cmd.ErrOrStderr(), "Error blocking ingest for repository %q: %v\n", res.repoName, res.err)
 					} else {
 						fmt.Fprintf(cmd.OutOrStdout(), "Successfully blocked ingest for repository %q\n", res.repoName)
 					}
 				}
 
-				if hasErrors {
-					return fmt.Errorf("failed to block ingest for some repositories")
-				}
 				return nil
 			}
 
@@ -93,4 +88,4 @@ Examples:
 	cmd.Flags().BoolVar(&allRepos, "all", false, "Block ingest for all repositories")
 
 	return cmd
-} 
+}
