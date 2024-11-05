@@ -50,13 +50,32 @@ Examples:
 					return fmt.Errorf("error listing repositories: %w", err)
 				}
 
+				type result struct {
+					repoName string
+					err      error
+				}
+				results := make(chan result, len(repos))
+
 				for _, repo := range repos {
-					err := client.Repositories().BlockIngest(repo.Name, seconds)
-					if err != nil {
-						fmt.Fprintf(cmd.ErrOrStderr(), "Error blocking ingest for repository %q: %v\n", repo.Name, err)
-						continue
+					go func(repoName string) {
+						err := client.Repositories().BlockIngest(repoName, seconds)
+						results <- result{repoName: repoName, err: err}
+					}(repo.Name)
+				}
+
+				var hasErrors bool
+				for i := 0; i < len(repos); i++ {
+					res := <-results
+					if res.err != nil {
+						hasErrors = true
+						fmt.Fprintf(cmd.ErrOrStderr(), "Error blocking ingest for repository %q: %v\n", res.repoName, res.err)
+					} else {
+						fmt.Fprintf(cmd.OutOrStdout(), "Successfully blocked ingest for repository %q\n", res.repoName)
 					}
-					fmt.Fprintf(cmd.OutOrStdout(), "Successfully blocked ingest for repository %q\n", repo.Name)
+				}
+
+				if hasErrors {
+					return fmt.Errorf("failed to block ingest for some repositories")
 				}
 				return nil
 			}
